@@ -3,9 +3,12 @@ package com.other.shuangseqiu;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 
@@ -18,10 +21,12 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 
+import com.other.excelutils.ExportExcel;
+
 public class ShuangSeQiuAsyncClient {
 	public static void main(String[] args) throws InterruptedException, ExecutionException, IOException {
 		//15页以后规则出现变化，暂不考虑
-		int pageNum = 15;
+		int pageNum = 2;
 
 		List<String> rowsList = getAllpages(pageNum);
 		Map<String, Integer> redCountMap = new HashMap<>();
@@ -30,13 +35,66 @@ public class ShuangSeQiuAsyncClient {
 
 		System.out.println(redCountMap.toString());
 		System.out.println("==========redCountMap===========");
-		orderCount(redCountMap);
+		Map<String, Integer> redSortMap=orderCount(redCountMap);
 		System.out.println("==========blueCountMap==========");
 		System.out.println(blueCountMap.toString());
-		orderCount(blueCountMap);
+		Map<String, Integer> blueSortMap=orderCount(blueCountMap);
+		
+		exportExcel(rowsList, redSortMap, blueSortMap);
 
 	}
-
+	private  static void exportExcel(List<String> rowsList,Map<String, Integer> redSortMap,Map<String, Integer> blueSortMap ){
+		
+		String[] rowsName1 = new String[]{"期号","红1","红2","红3","红4","红5","红6","蓝"};
+		String[] rowsName2 = new String[]{"红球号码","出现次数排序","总出现次数"};
+		String[] rowsName3 = new String[]{"篮球号码","出现次数排序","总出现次数"};
+		List<String[]> rowNameArray=new ArrayList<>();
+		rowNameArray.add(rowsName1);
+		rowNameArray.add(rowsName2);
+		rowNameArray.add(rowsName3);
+		
+		List<List<Object[]>>  dataAllLists=new ArrayList<>();
+		List<Object[]>  dataList1 = getFormatListResult(rowsList);
+		List<Object[]>  dataList2 = getFormatListResult(redSortMap);
+		List<Object[]>  dataList3 = getFormatListResult(blueSortMap);
+		dataAllLists.add(dataList1);
+		dataAllLists.add(dataList2);
+		dataAllLists.add(dataList3);
+		Object[] first=dataList1.get(0);
+		Object[] last=dataList1.get(dataList1.size()-1);
+		String titleFirst=String.format("%s-%s期结果",last[0].toString(),first[0].toString());
+		String[] titleArray = new String[]{titleFirst,"红球记录","篮球记录"};
+		ExportExcel ex=new ExportExcel(titleArray,rowNameArray,dataAllLists);
+		ex.exportMultipleSheet("D:\\dlt.xls", 3);
+		
+		
+	}
+	private static List<Object[]> getFormatListResult(Map<String, Integer> sortMap){
+		List<Object[]>  dataList = new ArrayList<Object[]>();
+	    Object[] objs = null;
+	    int sortNum=1;
+		for(Entry<String, Integer> e:sortMap.entrySet()){
+			objs=new Object[3];
+			objs[0]=e.getKey();
+			objs[1]=sortNum++;
+			objs[2]=e.getValue();
+			dataList.add(objs);
+		}
+		return dataList;
+	}
+	private static List<Object[]> getFormatListResult(List<String> rowsList){
+		List<Object[]>  dataList = new ArrayList<Object[]>();
+		for(int i=0;i<rowsList.size();i++){
+			dataList.add(rowsList.get(i).split(","));
+		}
+		dataList.sort(new Comparator<Object[]>(){		
+			@Override
+			public int compare(Object[] o1, Object[] o2) {				
+				return Integer.valueOf(o2[0].toString())-Integer.valueOf(o1[0].toString());
+			}});
+		return dataList;
+	}
+	
 	private static List<String> getAllpages(int pageNum) throws InterruptedException, ExecutionException, IOException {
 		// http://www.cwl.gov.cn/kjxx/ssq/hmhz/
 		// http://www.cwl.gov.cn/kjxx/ssq/hmhz/index_1.shtml
@@ -133,7 +191,8 @@ public class ShuangSeQiuAsyncClient {
 		}
 	}
 
-	private static void orderCount(Map<String, Integer> map) {
+	private static Map<String, Integer> orderCount(Map<String, Integer> map) {
+		Map<String, Integer> retMap=new LinkedHashMap<>();
 		String temp;
 		String[] keyArray = new String[map.keySet().size()];
 		map.keySet().toArray(keyArray);
@@ -147,8 +206,10 @@ public class ShuangSeQiuAsyncClient {
 			}
 		}
 		for (int i = 0; i < keyArray.length; i++) {
+			retMap.put(keyArray[i], map.get(keyArray[i]));
 			System.out.println(String.format("%s-%d", keyArray[i], map.get(keyArray[i])));
 		}
+		return retMap;
 	}
 
 }
