@@ -123,11 +123,10 @@ public class DLTAsyncClient {
 			String tempList = rowsList.get(i);
 			String[] tempArray = tempList.split(",");
 			for (int j = 1; j < tempArray.length; j++) {
-				if (j < tempArray.length - 1) {
+				if (j < tempArray.length - 2) {
 					int tempValue = redCountMap.get(tempArray[j]) + 1;
 					redCountMap.put(tempArray[j], tempValue);
-				}
-				if (j == tempArray.length - 1) {
+				}else{
 					int tempValue = blueCountMap.get(tempArray[j]) + 1;
 					blueCountMap.put(tempArray[j], tempValue);
 				}
