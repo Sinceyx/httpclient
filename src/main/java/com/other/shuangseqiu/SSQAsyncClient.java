@@ -23,7 +23,7 @@ import org.jsoup.select.Elements;
 
 import com.other.excelutils.ExportExcel;
 
-public class ShuangSeQiuAsyncClient {
+public class SSQAsyncClient {
 	public static void main(String[] args) throws InterruptedException, ExecutionException, IOException {
 		//15页以后规则出现变化，暂不考虑
 		int pageNum = 2;
