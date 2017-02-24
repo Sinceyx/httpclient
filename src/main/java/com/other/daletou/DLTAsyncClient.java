@@ -1,4 +1,4 @@
-package com.other.shuangseqiu;
+package com.other.daletou;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 
 import org.asynchttpclient.AsyncCompletionHandler;
 import org.asynchttpclient.AsyncHttpClient;
@@ -25,16 +24,15 @@ import org.jsoup.select.Elements;
 
 import com.other.excelutils.ExportExcel;
 
-public class SSQAsyncClient {
-	public static void main(String[] args) throws InterruptedException, ExecutionException, IOException {
-		//15页以后规则出现变化，暂不考虑
+public class DLTAsyncClient {
+	public static void main(String[] args) throws InterruptedException, IOException {
 		int pageNum = 1;
 
 		List<String> rowsList = getAllpages(pageNum);
 		Map<String, Integer> redCountMap = new HashMap<>();
 		Map<String, Integer> blueCountMap = new HashMap<>();
 		initMap(rowsList, redCountMap, blueCountMap);
-
+		
 		System.out.println(redCountMap.toString());
 		System.out.println("==========redCountMap===========");
 		Map<String, Integer> redSortMap=orderCount(redCountMap);
@@ -43,77 +41,19 @@ public class SSQAsyncClient {
 		Map<String, Integer> blueSortMap=orderCount(blueCountMap);
 		
 		exportExcel(rowsList, redSortMap, blueSortMap);
+	}
 
-	}
-	private  static void exportExcel(List<String> rowsList,Map<String, Integer> redSortMap,Map<String, Integer> blueSortMap ){
-		
-		String[] rowsName1 = new String[]{"期号","红1","红2","红3","红4","红5","红6","蓝"};
-		String[] rowsName2 = new String[]{"红球号码","出现次数排序","总出现次数"};
-		String[] rowsName3 = new String[]{"篮球号码","出现次数排序","总出现次数"};
-		List<String[]> rowNameArray=new ArrayList<>();
-		rowNameArray.add(rowsName1);
-		rowNameArray.add(rowsName2);
-		rowNameArray.add(rowsName3);
-		
-		List<List<Object[]>>  dataAllLists=new ArrayList<>();
-		List<Object[]>  dataList1 = getFormatListResult(rowsList);
-		List<Object[]>  dataList2 = getFormatListResult(redSortMap);
-		List<Object[]>  dataList3 = getFormatListResult(blueSortMap);
-		dataAllLists.add(dataList1);
-		dataAllLists.add(dataList2);
-		dataAllLists.add(dataList3);
-		Object[] first=dataList1.get(0);
-		Object[] last=dataList1.get(dataList1.size()-1);
-		String titleFirst=String.format("%s-%s期结果",last[0].toString(),first[0].toString());
-		String[] titleArray = new String[]{titleFirst,"红球记录","篮球记录"};
-		ExportExcel ex=new ExportExcel(titleArray,rowNameArray,dataAllLists);
-		LocalDate today = LocalDate.now();
-		String td=today.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-		ex.exportMultipleSheet("D:\\SSQ"+td+".xls", 3);
-		
-		
-	}
-	private static List<Object[]> getFormatListResult(Map<String, Integer> sortMap){
-		List<Object[]>  dataList = new ArrayList<Object[]>();
-	    Object[] objs = null;
-	    int sortNum=1;
-		for(Entry<String, Integer> e:sortMap.entrySet()){
-			objs=new Object[3];
-			objs[0]=e.getKey();
-			objs[1]=sortNum++;
-			objs[2]=e.getValue();
-			dataList.add(objs);
-		}
-		return dataList;
-	}
-	private static List<Object[]> getFormatListResult(List<String> rowsList){
-		List<Object[]>  dataList = new ArrayList<Object[]>();
-		for(int i=0;i<rowsList.size();i++){
-			dataList.add(rowsList.get(i).split(","));
-		}
-		dataList.sort(new Comparator<Object[]>(){		
-			@Override
-			public int compare(Object[] o1, Object[] o2) {				
-				return Integer.valueOf(o2[0].toString())-Integer.valueOf(o1[0].toString());
-			}});
-		return dataList;
-	}
-	
-	private static List<String> getAllpages(int pageNum) throws InterruptedException, ExecutionException, IOException {
-		// http://www.cwl.gov.cn/kjxx/ssq/hmhz/
-		// http://www.cwl.gov.cn/kjxx/ssq/hmhz/index_1.shtml
-		// http://www.cwl.gov.cn/kjxx/ssq/hmhz/index_31.shtml
-
+	private static List<String> getAllpages(int pageNum) throws InterruptedException, IOException {
 		List<String> rowsAllList = Collections.synchronizedList(new ArrayList<String>());
 		BoundRequestBuilder[] brbArray = new BoundRequestBuilder[pageNum];
 		CountDownLatch latch = new CountDownLatch(brbArray.length);
 		AsyncHttpClient asyncHttpClient = new DefaultAsyncHttpClient();
 		for (int i = 0; i < brbArray.length; i++) {
 			if (i == 0) {
-				brbArray[i] = asyncHttpClient.prepareGet("http://www.cwl.gov.cn/kjxx/ssq/hmhz/");
+				brbArray[i] = asyncHttpClient.prepareGet("http://www.lottery.gov.cn/historykj/history.jspx?_ltype=dlt");
 			} else {
 				brbArray[i] = asyncHttpClient
-						.prepareGet(String.format("http://www.cwl.gov.cn/kjxx/ssq/hmhz/index_%s.shtml", i));
+						.prepareGet(String.format("http://www.lottery.gov.cn/historykj/history_%s.jspx?_ltype=dlt", i));
 			}
 
 		}
@@ -124,9 +64,9 @@ public class SSQAsyncClient {
 				@Override
 				public Response onCompleted(Response r) throws Exception {
 					Document doc = Jsoup.parse(r.getResponseBodyAsStream(), "UTF-8", "");
-					Elements table = doc.select("table.hz");
+					Elements table = doc.select("table");
 					Document rowsDoc = Jsoup.parse(table.toString());
-					Elements rows = rowsDoc.select("td[height=35],p.haoma");
+					Elements rows = rowsDoc.select("td[height=23],td.red,td.blue");
 					String[] rowsArray = rows.text().split("\\s+");
 					rowsAllList.addAll(getListResult(rowsArray));
 					System.out.println(rowsAllList.size());
@@ -168,12 +108,12 @@ public class SSQAsyncClient {
 
 	private static void initMap(List<String> rowsList, Map<String, Integer> redCountMap,
 			Map<String, Integer> blueCountMap) {
-		for (int i = 1; i <= 33; i++) {
+		for (int i = 1; i <= 35; i++) {
 			String tmpKey = String.valueOf(i).length() == 2 ? String.valueOf(i)
 					: String.format("0%s", String.valueOf(i));
 			redCountMap.put(tmpKey, 0);
 		}
-		for (int i = 1; i <= 16; i++) {
+		for (int i = 1; i <= 12; i++) {
 			String tmpKey = String.valueOf(i).length() == 2 ? String.valueOf(i)
 					: String.format("0%s", String.valueOf(i));
 			blueCountMap.put(tmpKey, 0);
@@ -195,6 +135,62 @@ public class SSQAsyncClient {
 		}
 	}
 
+	private static void exportExcel(List<String> rowsList, Map<String, Integer> redSortMap,
+			Map<String, Integer> blueSortMap) {
+
+		String[] rowsName1 = new String[] { "期号", "红1", "红2", "红3", "红4", "红5", "蓝1", "蓝2" };
+		String[] rowsName2 = new String[] { "红球号码", "出现次数排序", "总出现次数" };
+		String[] rowsName3 = new String[] { "篮球号码", "出现次数排序", "总出现次数" };
+		List<String[]> rowNameArray = new ArrayList<>();
+		rowNameArray.add(rowsName1);
+		rowNameArray.add(rowsName2);
+		rowNameArray.add(rowsName3);
+
+		List<List<Object[]>> dataAllLists = new ArrayList<>();
+		List<Object[]> dataList1 = getFormatListResult(rowsList);
+		List<Object[]> dataList2 = getFormatListResult(redSortMap);
+		List<Object[]> dataList3 = getFormatListResult(blueSortMap);
+		dataAllLists.add(dataList1);
+		dataAllLists.add(dataList2);
+		dataAllLists.add(dataList3);
+		Object[] first = dataList1.get(0);
+		Object[] last = dataList1.get(dataList1.size() - 1);
+		String titleFirst = String.format("%s-%s期结果", last[0].toString(), first[0].toString());
+		String[] titleArray = new String[] { titleFirst, "红球记录", "篮球记录" };
+		ExportExcel ex = new ExportExcel(titleArray, rowNameArray, dataAllLists);
+		LocalDate today = LocalDate.now();
+		String td=today.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+		ex.exportMultipleSheet("D:\\DLT"+td+".xls", 3);
+
+	}
+
+	private static List<Object[]> getFormatListResult(Map<String, Integer> sortMap) {
+		List<Object[]> dataList = new ArrayList<Object[]>();
+		Object[] objs = null;
+		int sortNum = 1;
+		for (Entry<String, Integer> e : sortMap.entrySet()) {
+			objs = new Object[3];
+			objs[0] = e.getKey();
+			objs[1] = sortNum++;
+			objs[2] = e.getValue();
+			dataList.add(objs);
+		}
+		return dataList;
+	}
+
+	private static List<Object[]> getFormatListResult(List<String> rowsList) {
+		List<Object[]> dataList = new ArrayList<Object[]>();
+		for (int i = 0; i < rowsList.size(); i++) {
+			dataList.add(rowsList.get(i).split(","));
+		}
+		dataList.sort(new Comparator<Object[]>() {
+			@Override
+			public int compare(Object[] o1, Object[] o2) {
+				return Integer.valueOf(o2[0].toString()) - Integer.valueOf(o1[0].toString());
+			}
+		});
+		return dataList;
+	}
 	private static Map<String, Integer> orderCount(Map<String, Integer> map) {
 		Map<String, Integer> retMap=new LinkedHashMap<>();
 		String temp;
@@ -215,5 +211,4 @@ public class SSQAsyncClient {
 		}
 		return retMap;
 	}
-
 }
