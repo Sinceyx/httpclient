@@ -8,6 +8,8 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
+import com.alibaba.fastjson.JSONObject;
+
 public class HttpPostWithJSON {
 	public static String httpPostWithJSON(String url) throws Exception {
 
@@ -16,12 +18,11 @@ public class HttpPostWithJSON {
         String respContent = null;
         
 //        json方式
-//        JSONObject jsonParam = new JSONObject();  
-//        jsonParam.put("name", "admin");
-//        jsonParam.put("pass", "123456");
-        
-        String jsonParam="{\"amount\":10,\"channelCustomerNo\":\"93363DCC6064869708F1F3C72A0CE72A713A9D425CD50CDE\",\"checker\":\"测试\"}";
-        StringEntity entity = new StringEntity(jsonParam,"utf-8");//解决中文乱码问题    
+        JSONObject jsonParam = new JSONObject();  
+        jsonParam.put("amount", 10);
+        jsonParam.put("channelCustomerNo", "93363DCC6064869708F1F3C72A0CE72A713A9D425CD50CDE");        
+        //String jsonParam="{\"amount\":10,\"channelCustomerNo\":\"93363DCC6064869708F1F3C72A0CE72A713A9D425CD50CDE\",\"checker\":\"测试\"}";
+        StringEntity entity = new StringEntity(jsonParam.toString(),"utf-8");//解决中文乱码问题    
         entity.setContentEncoding("UTF-8");    
         entity.setContentType("application/json");    
         httpPost.setEntity(entity);
